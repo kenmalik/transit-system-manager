@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 @Command(name = "pts", version = "1.0",
-         description = "Public Transit System",
+         description = "Pomona Transit System",
          subcommands = {App.AddCommand.class, App.DeleteCommand.class, App.ListCommand.class})
 public class App implements Callable<Integer> {
 
@@ -23,7 +23,7 @@ public class App implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        System.out.println("Public Transit System");
+        System.out.println("Pomona Transit System");
         System.out.println("Usage: pts <command> bus [options]");
         System.out.println("Commands: add, delete, list");
         return 0;

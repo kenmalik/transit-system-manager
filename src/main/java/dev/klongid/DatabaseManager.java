@@ -25,8 +25,6 @@ public class DatabaseManager {
                 """;
 
             stmt.execute(createTableSQL);
-            System.out.println("Database initialized successfully.");
-
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
             e.printStackTrace();
