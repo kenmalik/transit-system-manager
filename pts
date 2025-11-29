@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Path to the JAR file
+JAR_PATH="$SCRIPT_DIR/target/cs4350-lab-04-1.0-SNAPSHOT.jar"
+
+# Run the application with native access enabled
+java --enable-native-access=ALL-UNNAMED -jar "$JAR_PATH" "$@"
