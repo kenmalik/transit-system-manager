@@ -16,7 +16,7 @@ public class DatabaseManager {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
 
-            String createTableSQL = """
+            String createBusTableSQL = """
                 CREATE TABLE IF NOT EXISTS Bus (
                     BusID INTEGER PRIMARY KEY,
                     Model TEXT NOT NULL,
@@ -24,7 +24,15 @@ public class DatabaseManager {
                 )
                 """;
 
-            stmt.execute(createTableSQL);
+            String createDriverTableSQL = """
+                CREATE TABLE IF NOT EXISTS Driver (
+                    DriverName TEXT PRIMARY KEY,
+                    DriverTelephoneNumber TEXT NOT NULL
+                )
+                """;
+
+            stmt.execute(createBusTableSQL);
+            stmt.execute(createDriverTableSQL);
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
             e.printStackTrace();
@@ -40,6 +48,18 @@ public class DatabaseManager {
 
         } catch (SQLException e) {
             System.err.println("Error clearing Bus table: " + e.getMessage());
+        }
+    }
+
+    public static void clearDriverTable() {
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            stmt.execute("DELETE FROM Driver");
+            System.out.println("Driver table cleared.");
+
+        } catch (SQLException e) {
+            System.err.println("Error clearing Driver table: " + e.getMessage());
         }
     }
 }
