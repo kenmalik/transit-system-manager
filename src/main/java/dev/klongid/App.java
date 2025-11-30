@@ -837,12 +837,14 @@ public class App implements Callable<Integer> {
         }
     }
 
-    @Command(name = "schedule", description = "Schedule queries", subcommands = { ScheduleCommand.TripCommand.class })
+    @Command(name = "schedule", description = "Schedule queries", subcommands = { ScheduleCommand.TripCommand.class,
+            ScheduleCommand.DriverCommand.class })
     static class ScheduleCommand implements Callable<Integer> {
         @Override
         public Integer call() {
             System.out.println("Usage: pts schedule <entity> [options]");
             System.out.println("  pts schedule trip <startLocation> <destination> <date>");
+            System.out.println("  pts schedule driver <driverName> <date>");
             return 0;
         }
 
@@ -901,6 +903,68 @@ public class App implements Callable<Integer> {
 
                 } catch (SQLException e) {
                     System.err.println("Error querying trip schedule: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "driver", description = "Get driver schedule")
+        static class DriverCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Driver name")
+            private String driverName;
+
+            @Parameters(index = "1", description = "Date")
+            private String date;
+
+            @Override
+            public Integer call() {
+                String sql = """
+                        SELECT d.DriverName, tof.Date,
+                               t.StartLocationName, t.DestinationName,
+                               tof.ScheduledStartTime, tof.ScheduledArrivalTime,
+                               tof.BusID
+                        FROM Driver d
+                        JOIN TripOffering tof ON d.DriverName = tof.DriverName
+                        JOIN Trip t ON tof.TripNumber = t.TripNumber
+                        WHERE d.DriverName = ? AND tof.Date = ?
+                        ORDER BY tof.ScheduledStartTime
+                        """;
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setString(1, driverName);
+                    pstmt.setString(2, date);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        boolean hasResults = false;
+                        boolean headerPrinted = false;
+
+                        while (rs.next()) {
+                            if (!headerPrinted) {
+                                System.out.println("Schedule for Driver: " + rs.getString("DriverName") + " on "
+                                        + rs.getString("Date") + ":");
+                                headerPrinted = true;
+                            }
+                            hasResults = true;
+                            System.out.printf(
+                                    "  Start: %s | Destination: %s | StartTime: %s | ArrivalTime: %s | BusID: %d%n",
+                                    rs.getString("StartLocationName"),
+                                    rs.getString("DestinationName"),
+                                    rs.getString("ScheduledStartTime"),
+                                    rs.getString("ScheduledArrivalTime"),
+                                    rs.getInt("BusID"));
+                        }
+
+                        if (!hasResults) {
+                            System.out.println("No schedule found for driver '" + driverName + "' on " + date + ".");
+                        }
+
+                        return 0;
+                    }
+
+                } catch (SQLException e) {
+                    System.err.println("Error querying driver schedule: " + e.getMessage());
                     return 1;
                 }
             }

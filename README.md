@@ -304,6 +304,23 @@ Start: Los Angeles | Destination: San Francisco | Date: 2024-01-15 | StartTime: 
 Start: Los Angeles | Destination: San Francisco | Date: 2024-01-15 | StartTime: 14:00 | ArrivalTime: 18:00 | Driver: Bob Wilson | BusID: 102
 ```
 
+### Schedule for a driver
+```bash
+./pts schedule driver <driverName> <date>
+```
+
+**Example:**
+```bash
+./pts schedule driver "John Smith" "2024-01-15"
+```
+
+**Example output:**
+```
+Schedule for Driver: John Smith on 2024-01-15:
+  Start: Los Angeles | Destination: San Francisco | StartTime: 08:00 | ArrivalTime: 12:00 | BusID: 101
+  Start: San Diego | Destination: Sacramento | StartTime: 14:30 | ArrivalTime: 18:30 | BusID: 103
+```
+
 ## Database
 
 The application uses SQLite with a database file `app.db` created in the project root directory.
