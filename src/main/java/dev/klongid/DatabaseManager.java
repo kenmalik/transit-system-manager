@@ -31,8 +31,16 @@ public class DatabaseManager {
                 )
                 """;
 
+            String createStopTableSQL = """
+                CREATE TABLE IF NOT EXISTS Stop (
+                    StopNumber INTEGER PRIMARY KEY,
+                    StopAddress TEXT NOT NULL
+                )
+                """;
+
             stmt.execute(createBusTableSQL);
             stmt.execute(createDriverTableSQL);
+            stmt.execute(createStopTableSQL);
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
             e.printStackTrace();
@@ -60,6 +68,18 @@ public class DatabaseManager {
 
         } catch (SQLException e) {
             System.err.println("Error clearing Driver table: " + e.getMessage());
+        }
+    }
+
+    public static void clearStopTable() {
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            stmt.execute("DELETE FROM Stop");
+            System.out.println("Stop table cleared.");
+
+        } catch (SQLException e) {
+            System.err.println("Error clearing Stop table: " + e.getMessage());
         }
     }
 }

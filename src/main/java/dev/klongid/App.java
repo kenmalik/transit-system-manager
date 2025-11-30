@@ -26,18 +26,19 @@ public class App implements Callable<Integer> {
         System.out.println("Pomona Transit System");
         System.out.println("Usage: pts <command> <entity> [options]");
         System.out.println("Commands: add, delete, list");
-        System.out.println("Entities: bus, driver");
+        System.out.println("Entities: bus, driver, stop");
         return 0;
     }
 
     @Command(name = "add", description = "Add entities",
-             subcommands = {AddCommand.BusCommand.class, AddCommand.DriverCommand.class})
+             subcommands = {AddCommand.BusCommand.class, AddCommand.DriverCommand.class, AddCommand.StopCommand.class})
     static class AddCommand implements Callable<Integer> {
         @Override
         public Integer call() {
             System.out.println("Usage: pts add <entity> [options]");
             System.out.println("  pts add bus <busID> <model> <year>");
             System.out.println("  pts add driver <name> <phone>");
+            System.out.println("  pts add stop <stopNumber> <address>");
             return 0;
         }
 
@@ -102,16 +103,46 @@ public class App implements Callable<Integer> {
                 }
             }
         }
+
+        @Command(name = "stop", description = "Add a new stop")
+        static class StopCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Stop number")
+            private int stopNumber;
+
+            @Parameters(index = "1", description = "Stop address")
+            private String address;
+
+            @Override
+            public Integer call() {
+                String sql = "INSERT INTO Stop (StopNumber, StopAddress) VALUES (?, ?)";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, stopNumber);
+                    pstmt.setString(2, address);
+                    pstmt.executeUpdate();
+
+                    System.out.println("Stop added: Number=" + stopNumber + ", Address=" + address);
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error adding stop: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
     }
 
     @Command(name = "delete", description = "Delete entities",
-             subcommands = {DeleteCommand.BusCommand.class, DeleteCommand.DriverCommand.class})
+             subcommands = {DeleteCommand.BusCommand.class, DeleteCommand.DriverCommand.class, DeleteCommand.StopCommand.class})
     static class DeleteCommand implements Callable<Integer> {
         @Override
         public Integer call() {
             System.out.println("Usage: pts delete <entity> [options]");
             System.out.println("  pts delete bus <busID>");
             System.out.println("  pts delete driver <name>");
+            System.out.println("  pts delete stop <stopNumber>");
             return 0;
         }
 
@@ -174,16 +205,47 @@ public class App implements Callable<Integer> {
                 }
             }
         }
+
+        @Command(name = "stop", description = "Delete a stop")
+        static class StopCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Stop number to remove")
+            private int stopNumber;
+
+            @Override
+            public Integer call() {
+                String sql = "DELETE FROM Stop WHERE StopNumber = ?";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, stopNumber);
+                    int rowsDeleted = pstmt.executeUpdate();
+
+                    if (rowsDeleted > 0) {
+                        System.out.println("Stop deleted: Number=" + stopNumber);
+                        return 0;
+                    } else {
+                        System.out.println("No stop found with number: " + stopNumber);
+                        return 1;
+                    }
+
+                } catch (SQLException e) {
+                    System.err.println("Error deleting stop: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
     }
 
     @Command(name = "list", description = "List entities",
-             subcommands = {ListCommand.BusCommand.class, ListCommand.DriverCommand.class})
+             subcommands = {ListCommand.BusCommand.class, ListCommand.DriverCommand.class, ListCommand.StopCommand.class})
     static class ListCommand implements Callable<Integer> {
         @Override
         public Integer call() {
             System.out.println("Usage: pts list <entity>");
             System.out.println("  pts list bus");
             System.out.println("  pts list driver");
+            System.out.println("  pts list stop");
             return 0;
         }
 
@@ -247,6 +309,38 @@ public class App implements Callable<Integer> {
 
                 } catch (SQLException e) {
                     System.err.println("Error querying drivers: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "stop", description = "List all stops")
+        static class StopCommand implements Callable<Integer> {
+            @Override
+            public Integer call() {
+                String sql = "SELECT StopNumber, StopAddress FROM Stop";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(sql);
+                     ResultSet rs = pstmt.executeQuery()) {
+
+                    System.out.println("All stops:");
+                    boolean hasResults = false;
+                    while (rs.next()) {
+                        hasResults = true;
+                        System.out.printf("Number: %d | Address: %s%n",
+                            rs.getInt("StopNumber"),
+                            rs.getString("StopAddress"));
+                    }
+
+                    if (!hasResults) {
+                        System.out.println("No stops found.");
+                    }
+
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error querying stops: " + e.getMessage());
                     return 1;
                 }
             }
