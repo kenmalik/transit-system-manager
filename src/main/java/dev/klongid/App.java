@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 @Command(name = "pts", version = "1.0", description = "Pomona Transit System", subcommands = { App.AddCommand.class,
-        App.DeleteCommand.class, App.ListCommand.class })
+        App.DeleteCommand.class, App.ListCommand.class, App.ScheduleCommand.class })
 public class App implements Callable<Integer> {
 
     public static void main(String[] args) {
@@ -24,7 +24,7 @@ public class App implements Callable<Integer> {
     public Integer call() {
         System.out.println("Pomona Transit System");
         System.out.println("Usage: pts <command> <entity> [options]");
-        System.out.println("Commands: add, delete, list");
+        System.out.println("Commands: add, delete, list, schedule");
         System.out.println("Entities: bus, driver, stop, trip, tripoffering, tripstopinfo, actualtripstopinfo");
         return 0;
     }
@@ -831,6 +831,76 @@ public class App implements Callable<Integer> {
 
                 } catch (SQLException e) {
                     System.err.println("Error querying actual trip stop info: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+    }
+
+    @Command(name = "schedule", description = "Schedule queries", subcommands = { ScheduleCommand.TripCommand.class })
+    static class ScheduleCommand implements Callable<Integer> {
+        @Override
+        public Integer call() {
+            System.out.println("Usage: pts schedule <entity> [options]");
+            System.out.println("  pts schedule trip <startLocation> <destination> <date>");
+            return 0;
+        }
+
+        @Command(name = "trip", description = "Get trip schedule")
+        static class TripCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Start location name")
+            private String startLocation;
+
+            @Parameters(index = "1", description = "Destination name")
+            private String destination;
+
+            @Parameters(index = "2", description = "Date")
+            private String date;
+
+            @Override
+            public Integer call() {
+                String sql = """
+                        SELECT t.StartLocationName, t.DestinationName,
+                               tof.Date, tof.ScheduledStartTime, tof.ScheduledArrivalTime,
+                               tof.DriverName, tof.BusID
+                        FROM Trip t
+                        JOIN TripOffering tof ON t.TripNumber = tof.TripNumber
+                        WHERE t.StartLocationName = ? AND t.DestinationName = ? AND tof.Date = ?
+                        """;
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setString(1, startLocation);
+                    pstmt.setString(2, destination);
+                    pstmt.setString(3, date);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        System.out.println("Trip schedule for " + startLocation + " to " + destination + " on " + date
+                                + ":");
+                        boolean hasResults = false;
+                        while (rs.next()) {
+                            hasResults = true;
+                            System.out.printf(
+                                    "Start: %s | Destination: %s | Date: %s | StartTime: %s | ArrivalTime: %s | Driver: %s | BusID: %d%n",
+                                    rs.getString("StartLocationName"),
+                                    rs.getString("DestinationName"),
+                                    rs.getString("Date"),
+                                    rs.getString("ScheduledStartTime"),
+                                    rs.getString("ScheduledArrivalTime"),
+                                    rs.getString("DriverName"),
+                                    rs.getInt("BusID"));
+                        }
+
+                        if (!hasResults) {
+                            System.out.println("No trips found for the specified criteria.");
+                        }
+
+                        return 0;
+                    }
+
+                } catch (SQLException e) {
+                    System.err.println("Error querying trip schedule: " + e.getMessage());
                     return 1;
                 }
             }

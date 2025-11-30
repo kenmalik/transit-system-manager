@@ -287,6 +287,23 @@ TripNumber: 1 | Date: 2024-01-15 | StartTime: 08:00 | StopNumber: 2 | SchedArriv
 ./pts delete actualtripstopinfo 1 "2024-01-15" "08:00" 2
 ```
 
+### Schedule a trip
+```bash
+./pts schedule trip <startLocation> <destination> <date>
+```
+
+**Example:**
+```bash
+./pts schedule trip "Los Angeles" "San Francisco" "2024-01-15"
+```
+
+**Example output:**
+```
+Trip schedule for Los Angeles to San Francisco on 2024-01-15:
+Start: Los Angeles | Destination: San Francisco | Date: 2024-01-15 | StartTime: 08:00 | ArrivalTime: 12:00 | Driver: John Smith | BusID: 101
+Start: Los Angeles | Destination: San Francisco | Date: 2024-01-15 | StartTime: 14:00 | ArrivalTime: 18:00 | Driver: Bob Wilson | BusID: 102
+```
+
 ## Database
 
 The application uses SQLite with a database file `app.db` created in the project root directory.
