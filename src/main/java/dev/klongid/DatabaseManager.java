@@ -14,29 +14,29 @@ public class DatabaseManager {
 
     public static void initializeDatabase() {
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
 
             String createBusTableSQL = """
-                CREATE TABLE IF NOT EXISTS Bus (
-                    BusID INTEGER PRIMARY KEY,
-                    Model TEXT NOT NULL,
-                    Year INTEGER NOT NULL
-                )
-                """;
+                    CREATE TABLE IF NOT EXISTS Bus (
+                        BusID INTEGER PRIMARY KEY,
+                        Model TEXT NOT NULL,
+                        Year INTEGER NOT NULL
+                    )
+                    """;
 
             String createDriverTableSQL = """
-                CREATE TABLE IF NOT EXISTS Driver (
-                    DriverName TEXT PRIMARY KEY,
-                    DriverTelephoneNumber TEXT NOT NULL
-                )
-                """;
+                    CREATE TABLE IF NOT EXISTS Driver (
+                        DriverName TEXT PRIMARY KEY,
+                        DriverTelephoneNumber TEXT NOT NULL
+                    )
+                    """;
 
             String createStopTableSQL = """
-                CREATE TABLE IF NOT EXISTS Stop (
-                    StopNumber INTEGER PRIMARY KEY,
-                    StopAddress TEXT NOT NULL
-                )
-                """;
+                    CREATE TABLE IF NOT EXISTS Stop (
+                        StopNumber INTEGER PRIMARY KEY,
+                        StopAddress TEXT NOT NULL
+                    )
+                    """;
 
             stmt.execute(createBusTableSQL);
             stmt.execute(createDriverTableSQL);
@@ -49,7 +49,7 @@ public class DatabaseManager {
 
     public static void clearBusTable() {
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
 
             stmt.execute("DELETE FROM Bus");
             System.out.println("Bus table cleared.");
@@ -61,7 +61,7 @@ public class DatabaseManager {
 
     public static void clearDriverTable() {
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
 
             stmt.execute("DELETE FROM Driver");
             System.out.println("Driver table cleared.");
@@ -73,7 +73,7 @@ public class DatabaseManager {
 
     public static void clearStopTable() {
         try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
+                Statement stmt = conn.createStatement()) {
 
             stmt.execute("DELETE FROM Stop");
             System.out.println("Stop table cleared.");

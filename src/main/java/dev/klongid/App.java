@@ -10,9 +10,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
-@Command(name = "pts", version = "1.0",
-         description = "Pomona Transit System",
-         subcommands = {App.AddCommand.class, App.DeleteCommand.class, App.ListCommand.class})
+@Command(name = "pts", version = "1.0", description = "Pomona Transit System", subcommands = { App.AddCommand.class,
+        App.DeleteCommand.class, App.ListCommand.class })
 public class App implements Callable<Integer> {
 
     public static void main(String[] args) {
@@ -30,8 +29,8 @@ public class App implements Callable<Integer> {
         return 0;
     }
 
-    @Command(name = "add", description = "Add entities",
-             subcommands = {AddCommand.BusCommand.class, AddCommand.DriverCommand.class, AddCommand.StopCommand.class})
+    @Command(name = "add", description = "Add entities", subcommands = { AddCommand.BusCommand.class,
+            AddCommand.DriverCommand.class, AddCommand.StopCommand.class })
     static class AddCommand implements Callable<Integer> {
         @Override
         public Integer call() {
@@ -58,7 +57,7 @@ public class App implements Callable<Integer> {
                 String sql = "INSERT INTO Bus (BusID, Model, Year) VALUES (?, ?, ?)";
 
                 try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
                     pstmt.setInt(1, busID);
                     pstmt.setString(2, model);
@@ -88,7 +87,7 @@ public class App implements Callable<Integer> {
                 String sql = "INSERT INTO Driver (DriverName, DriverTelephoneNumber) VALUES (?, ?)";
 
                 try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
                     pstmt.setString(1, name);
                     pstmt.setString(2, phone);
@@ -117,7 +116,7 @@ public class App implements Callable<Integer> {
                 String sql = "INSERT INTO Stop (StopNumber, StopAddress) VALUES (?, ?)";
 
                 try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
                     pstmt.setInt(1, stopNumber);
                     pstmt.setString(2, address);
@@ -134,8 +133,8 @@ public class App implements Callable<Integer> {
         }
     }
 
-    @Command(name = "delete", description = "Delete entities",
-             subcommands = {DeleteCommand.BusCommand.class, DeleteCommand.DriverCommand.class, DeleteCommand.StopCommand.class})
+    @Command(name = "delete", description = "Delete entities", subcommands = { DeleteCommand.BusCommand.class,
+            DeleteCommand.DriverCommand.class, DeleteCommand.StopCommand.class })
     static class DeleteCommand implements Callable<Integer> {
         @Override
         public Integer call() {
@@ -156,7 +155,7 @@ public class App implements Callable<Integer> {
                 String sql = "DELETE FROM Bus WHERE BusID = ?";
 
                 try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
                     pstmt.setInt(1, busID);
                     int rowsDeleted = pstmt.executeUpdate();
@@ -186,7 +185,7 @@ public class App implements Callable<Integer> {
                 String sql = "DELETE FROM Driver WHERE DriverName = ?";
 
                 try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
                     pstmt.setString(1, name);
                     int rowsDeleted = pstmt.executeUpdate();
@@ -216,7 +215,7 @@ public class App implements Callable<Integer> {
                 String sql = "DELETE FROM Stop WHERE StopNumber = ?";
 
                 try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
                     pstmt.setInt(1, stopNumber);
                     int rowsDeleted = pstmt.executeUpdate();
@@ -237,8 +236,8 @@ public class App implements Callable<Integer> {
         }
     }
 
-    @Command(name = "list", description = "List entities",
-             subcommands = {ListCommand.BusCommand.class, ListCommand.DriverCommand.class, ListCommand.StopCommand.class})
+    @Command(name = "list", description = "List entities", subcommands = { ListCommand.BusCommand.class,
+            ListCommand.DriverCommand.class, ListCommand.StopCommand.class })
     static class ListCommand implements Callable<Integer> {
         @Override
         public Integer call() {
@@ -256,17 +255,17 @@ public class App implements Callable<Integer> {
                 String sql = "SELECT BusID, Model, Year FROM Bus";
 
                 try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql);
-                     ResultSet rs = pstmt.executeQuery()) {
+                        PreparedStatement pstmt = conn.prepareStatement(sql);
+                        ResultSet rs = pstmt.executeQuery()) {
 
                     System.out.println("All buses:");
                     boolean hasResults = false;
                     while (rs.next()) {
                         hasResults = true;
                         System.out.printf("BusID: %d | Model: %s | Year: %d%n",
-                            rs.getInt("BusID"),
-                            rs.getString("Model"),
-                            rs.getInt("Year"));
+                                rs.getInt("BusID"),
+                                rs.getString("Model"),
+                                rs.getInt("Year"));
                     }
 
                     if (!hasResults) {
@@ -289,16 +288,16 @@ public class App implements Callable<Integer> {
                 String sql = "SELECT DriverName, DriverTelephoneNumber FROM Driver";
 
                 try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql);
-                     ResultSet rs = pstmt.executeQuery()) {
+                        PreparedStatement pstmt = conn.prepareStatement(sql);
+                        ResultSet rs = pstmt.executeQuery()) {
 
                     System.out.println("All drivers:");
                     boolean hasResults = false;
                     while (rs.next()) {
                         hasResults = true;
                         System.out.printf("Name: %s | Phone: %s%n",
-                            rs.getString("DriverName"),
-                            rs.getString("DriverTelephoneNumber"));
+                                rs.getString("DriverName"),
+                                rs.getString("DriverTelephoneNumber"));
                     }
 
                     if (!hasResults) {
@@ -321,16 +320,16 @@ public class App implements Callable<Integer> {
                 String sql = "SELECT StopNumber, StopAddress FROM Stop";
 
                 try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql);
-                     ResultSet rs = pstmt.executeQuery()) {
+                        PreparedStatement pstmt = conn.prepareStatement(sql);
+                        ResultSet rs = pstmt.executeQuery()) {
 
                     System.out.println("All stops:");
                     boolean hasResults = false;
                     while (rs.next()) {
                         hasResults = true;
                         System.out.printf("Number: %d | Address: %s%n",
-                            rs.getInt("StopNumber"),
-                            rs.getString("StopAddress"));
+                                rs.getInt("StopNumber"),
+                                rs.getString("StopAddress"));
                     }
 
                     if (!hasResults) {
