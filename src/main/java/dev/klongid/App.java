@@ -2,16 +2,19 @@ package dev.klongid;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Scanner;
 import java.util.concurrent.Callable;
 
 @Command(name = "pts", version = "1.0", description = "Pomona Transit System", subcommands = { App.AddCommand.class,
-        App.DeleteCommand.class, App.ListCommand.class, App.ScheduleCommand.class, App.StopsCommand.class })
+        App.DeleteCommand.class, App.ListCommand.class, App.ScheduleCommand.class, App.StopsCommand.class,
+        App.EditCommand.class })
 public class App implements Callable<Integer> {
 
     public static void main(String[] args) {
@@ -24,7 +27,7 @@ public class App implements Callable<Integer> {
     public Integer call() {
         System.out.println("Pomona Transit System");
         System.out.println("Usage: pts <command> <entity> [options]");
-        System.out.println("Commands: add, delete, list, schedule, stops");
+        System.out.println("Commands: add, delete, list, schedule, stops, edit");
         System.out.println("Entities: bus, driver, stop, trip, tripoffering, tripstopinfo, actualtripstopinfo");
         return 0;
     }
@@ -1020,6 +1023,212 @@ public class App implements Callable<Integer> {
             } catch (SQLException e) {
                 System.err.println("Error querying trip stops: " + e.getMessage());
                 return 1;
+            }
+        }
+    }
+
+    @Command(name = "edit", description = "Edit entities", subcommands = { EditCommand.TripOfferingCommand.class })
+    static class EditCommand implements Callable<Integer> {
+        @Override
+        public Integer call() {
+            System.out.println("Usage: pts edit <entity> [options]");
+            System.out.println("  pts edit tripoffering <tripNumber> <date> <startTime> --driver <newDriver>");
+            System.out.println("  pts edit tripoffering <tripNumber> <date> <startTime> --bus <newBusID>");
+            return 0;
+        }
+
+        @Command(name = "tripoffering", description = "Edit a trip offering")
+        static class TripOfferingCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Trip number")
+            private int tripNumber;
+
+            @Parameters(index = "1", description = "Date")
+            private String date;
+
+            @Parameters(index = "2", description = "Scheduled start time")
+            private String startTime;
+
+            @Option(names = "--driver", description = "New driver name")
+            private String newDriver;
+
+            @Option(names = "--bus", description = "New bus ID")
+            private Integer newBusID;
+
+            @Override
+            public Integer call() {
+                if (newDriver == null && newBusID == null) {
+                    System.err.println("Error: You must specify either --driver or --bus option.");
+                    return 1;
+                }
+
+                if (newDriver != null && newBusID != null) {
+                    System.err.println("Error: You can only specify one option at a time (--driver or --bus).");
+                    return 1;
+                }
+
+                if (newDriver != null) {
+                    return editDriver();
+                } else {
+                    return editBus();
+                }
+            }
+
+            private Integer editDriver() {
+                // First, check if the new driver exists
+                String checkDriverSQL = "SELECT DriverName FROM Driver WHERE DriverName = ?";
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(checkDriverSQL)) {
+
+                    pstmt.setString(1, newDriver);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (!rs.next()) {
+                            System.err.println("Error: Driver '" + newDriver + "' does not exist in the database.");
+                            return 1;
+                        }
+                    }
+                } catch (SQLException e) {
+                    System.err.println("Error checking driver existence: " + e.getMessage());
+                    return 1;
+                }
+
+                // Get current trip offering info
+                String getTripOfferingSQL = "SELECT DriverName FROM TripOffering WHERE TripNumber = ? AND Date = ? AND ScheduledStartTime = ?";
+                String oldDriver;
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(getTripOfferingSQL)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    pstmt.setString(2, date);
+                    pstmt.setString(3, startTime);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (!rs.next()) {
+                            System.err.println("Error: Trip offering not found.");
+                            return 1;
+                        }
+                        oldDriver = rs.getString("DriverName");
+                    }
+                } catch (SQLException e) {
+                    System.err.println("Error retrieving trip offering: " + e.getMessage());
+                    return 1;
+                }
+
+                // Display confirmation
+                System.out.println("Trip Offering: TripNumber=" + tripNumber + ", Date=" + date + ", StartTime="
+                        + startTime);
+                System.out.println("Old Driver: " + oldDriver);
+                System.out.println("New Driver: " + newDriver);
+                System.out.print("Are you sure you want to make this change? (yes/no): ");
+
+                try (Scanner scanner = new Scanner(System.in)) {
+                    String response = scanner.nextLine().trim().toLowerCase();
+                    if (!response.equals("yes")) {
+                        System.out.println("Edit cancelled.");
+                        return 0;
+                    }
+                }
+
+                // Perform the update
+                String updateSQL = "UPDATE TripOffering SET DriverName = ? WHERE TripNumber = ? AND Date = ? AND ScheduledStartTime = ?";
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
+
+                    pstmt.setString(1, newDriver);
+                    pstmt.setInt(2, tripNumber);
+                    pstmt.setString(3, date);
+                    pstmt.setString(4, startTime);
+
+                    int rowsUpdated = pstmt.executeUpdate();
+                    if (rowsUpdated > 0) {
+                        System.out.println("Driver updated successfully.");
+                        return 0;
+                    } else {
+                        System.err.println("Error: Failed to update driver.");
+                        return 1;
+                    }
+                } catch (SQLException e) {
+                    System.err.println("Error updating driver: " + e.getMessage());
+                    return 1;
+                }
+            }
+
+            private Integer editBus() {
+                // First, check if the new bus exists
+                String checkBusSQL = "SELECT BusID FROM Bus WHERE BusID = ?";
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(checkBusSQL)) {
+
+                    pstmt.setInt(1, newBusID);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (!rs.next()) {
+                            System.err.println("Error: Bus with ID " + newBusID + " does not exist in the database.");
+                            return 1;
+                        }
+                    }
+                } catch (SQLException e) {
+                    System.err.println("Error checking bus existence: " + e.getMessage());
+                    return 1;
+                }
+
+                // Get current trip offering info
+                String getTripOfferingSQL = "SELECT BusID FROM TripOffering WHERE TripNumber = ? AND Date = ? AND ScheduledStartTime = ?";
+                int oldBusID;
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(getTripOfferingSQL)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    pstmt.setString(2, date);
+                    pstmt.setString(3, startTime);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (!rs.next()) {
+                            System.err.println("Error: Trip offering not found.");
+                            return 1;
+                        }
+                        oldBusID = rs.getInt("BusID");
+                    }
+                } catch (SQLException e) {
+                    System.err.println("Error retrieving trip offering: " + e.getMessage());
+                    return 1;
+                }
+
+                // Display confirmation
+                System.out.println("Trip Offering: TripNumber=" + tripNumber + ", Date=" + date + ", StartTime="
+                        + startTime);
+                System.out.println("Old Bus ID: " + oldBusID);
+                System.out.println("New Bus ID: " + newBusID);
+                System.out.print("Are you sure you want to make this change? (yes/no): ");
+
+                try (Scanner scanner = new Scanner(System.in)) {
+                    String response = scanner.nextLine().trim().toLowerCase();
+                    if (!response.equals("yes")) {
+                        System.out.println("Edit cancelled.");
+                        return 0;
+                    }
+                }
+
+                // Perform the update
+                String updateSQL = "UPDATE TripOffering SET BusID = ? WHERE TripNumber = ? AND Date = ? AND ScheduledStartTime = ?";
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
+
+                    pstmt.setInt(1, newBusID);
+                    pstmt.setInt(2, tripNumber);
+                    pstmt.setString(3, date);
+                    pstmt.setString(4, startTime);
+
+                    int rowsUpdated = pstmt.executeUpdate();
+                    if (rowsUpdated > 0) {
+                        System.out.println("Bus updated successfully.");
+                        return 0;
+                    } else {
+                        System.err.println("Error: Failed to update bus.");
+                        return 1;
+                    }
+                } catch (SQLException e) {
+                    System.err.println("Error updating bus: " + e.getMessage());
+                    return 1;
+                }
             }
         }
     }

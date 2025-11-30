@@ -339,6 +339,44 @@ Stops for Trip from Los Angeles to San Francisco:
   Stop 3: Downtown Terminal (Driving time: 60 min)
 ```
 
+### Edit trip offering driver
+```bash
+./pts edit tripoffering <tripNumber> <date> <startTime> --driver <newDriver>
+```
+
+**Example:**
+```bash
+./pts edit tripoffering 1 "2024-01-15" "08:00" --driver "Bob Wilson"
+```
+
+**Example output:**
+```
+Trip Offering: TripNumber=1, Date=2024-01-15, StartTime=08:00
+Old Driver: John Smith
+New Driver: Bob Wilson
+Are you sure you want to make this change? (yes/no): yes
+Driver updated successfully.
+```
+
+### Edit trip offering bus
+```bash
+./pts edit tripoffering <tripNumber> <date> <startTime> --bus <newBusID>
+```
+
+**Example:**
+```bash
+./pts edit tripoffering 1 "2024-01-15" "08:00" --bus 102
+```
+
+**Example output:**
+```
+Trip Offering: TripNumber=1, Date=2024-01-15, StartTime=08:00
+Old Bus ID: 101
+New Bus ID: 102
+Are you sure you want to make this change? (yes/no): yes
+Bus updated successfully.
+```
+
 ## Database
 
 The application uses SQLite with a database file `app.db` created in the project root directory.
