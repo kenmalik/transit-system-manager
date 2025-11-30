@@ -200,6 +200,33 @@ TripNumber: 2 | Start: San Diego | Destination: Sacramento
 ./pts add tripoffering 1 "2024-01-15" "08:00" "12:00" "John Smith" 101
 ```
 
+**Interactive mode:**
+```bash
+./pts add tripoffering -i
+```
+
+This will prompt you for each field and allow you to add multiple trip offerings:
+```
+=== Add Trip Offering ===
+Trip Number: 1
+Date (YYYY-MM-DD): 2024-01-15
+Scheduled Start Time (HH:MM): 08:00
+Scheduled Arrival Time (HH:MM): 12:00
+Driver Name: John Smith
+Bus ID: 101
+
+✓ TripOffering added successfully:
+  TripNumber: 1
+  Date: 2024-01-15
+  ScheduledStartTime: 08:00
+  ScheduledArrivalTime: 12:00
+  DriverName: John Smith
+  BusID: 101
+
+Do you want to add another trip offering? (yes/no): no
+Exiting interactive mode.
+```
+
 ### List all trip offerings
 ```bash
 ./pts list tripoffering

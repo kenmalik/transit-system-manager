@@ -179,46 +179,113 @@ public class App implements Callable<Integer> {
 
         @Command(name = "tripoffering", description = "Add a new trip offering")
         static class TripOfferingCommand implements Callable<Integer> {
-            @Parameters(index = "0", description = "Trip number")
-            private int tripNumber;
+            @Option(names = { "-i", "--interactive" }, description = "Interactive mode")
+            private boolean interactive;
 
-            @Parameters(index = "1", description = "Date")
+            @Parameters(index = "0", description = "Trip number", arity = "0..1")
+            private Integer tripNumber;
+
+            @Parameters(index = "1", description = "Date", arity = "0..1")
             private String date;
 
-            @Parameters(index = "2", description = "Scheduled start time")
+            @Parameters(index = "2", description = "Scheduled start time", arity = "0..1")
             private String startTime;
 
-            @Parameters(index = "3", description = "Scheduled arrival time")
+            @Parameters(index = "3", description = "Scheduled arrival time", arity = "0..1")
             private String arrivalTime;
 
-            @Parameters(index = "4", description = "Driver name")
+            @Parameters(index = "4", description = "Driver name", arity = "0..1")
             private String driverName;
 
-            @Parameters(index = "5", description = "Bus ID")
-            private int busID;
+            @Parameters(index = "5", description = "Bus ID", arity = "0..1")
+            private Integer busID;
 
             @Override
             public Integer call() {
+                if (interactive) {
+                    return interactiveMode();
+                } else {
+                    if (tripNumber == null || date == null || startTime == null || arrivalTime == null
+                            || driverName == null || busID == null) {
+                        System.err.println("Error: All parameters are required in non-interactive mode.");
+                        System.err.println(
+                                "Usage: pts add tripoffering <tripNumber> <date> <startTime> <arrivalTime> <driverName> <busID>");
+                        return 1;
+                    }
+                    return addTripOffering(tripNumber, date, startTime, arrivalTime, driverName, busID);
+                }
+            }
+
+            private Integer interactiveMode() {
+                try (Scanner scanner = new Scanner(System.in)) {
+                    boolean addAnother = true;
+
+                    while (addAnother) {
+                        System.out.println("\n=== Add Trip Offering ===");
+
+                        System.out.print("Trip Number: ");
+                        int tripNum = scanner.nextInt();
+                        scanner.nextLine(); // consume newline
+
+                        System.out.print("Date (YYYY-MM-DD): ");
+                        String tripDate = scanner.nextLine().trim();
+
+                        System.out.print("Scheduled Start Time (HH:MM): ");
+                        String schedStart = scanner.nextLine().trim();
+
+                        System.out.print("Scheduled Arrival Time (HH:MM): ");
+                        String schedArrival = scanner.nextLine().trim();
+
+                        System.out.print("Driver Name: ");
+                        String driver = scanner.nextLine().trim();
+
+                        System.out.print("Bus ID: ");
+                        int bus = scanner.nextInt();
+                        scanner.nextLine(); // consume newline
+
+                        // Attempt to insert
+                        int result = addTripOffering(tripNum, tripDate, schedStart, schedArrival, driver, bus);
+
+                        if (result != 0) {
+                            System.out.println("\nFailed to add trip offering.");
+                        }
+
+                        System.out.print("\nDo you want to add another trip offering? (yes/no): ");
+                        String response = scanner.nextLine().trim().toLowerCase();
+                        addAnother = response.equals("yes") || response.equals("y");
+                    }
+
+                    System.out.println("Exiting interactive mode.");
+                    return 0;
+                }
+            }
+
+            private Integer addTripOffering(int tripNum, String tripDate, String schedStart, String schedArrival,
+                    String driver, int bus) {
                 String sql = "INSERT INTO TripOffering (TripNumber, Date, ScheduledStartTime, ScheduledArrivalTime, DriverName, BusID) VALUES (?, ?, ?, ?, ?, ?)";
 
                 try (Connection conn = DatabaseManager.getConnection();
                         PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-                    pstmt.setInt(1, tripNumber);
-                    pstmt.setString(2, date);
-                    pstmt.setString(3, startTime);
-                    pstmt.setString(4, arrivalTime);
-                    pstmt.setString(5, driverName);
-                    pstmt.setInt(6, busID);
+                    pstmt.setInt(1, tripNum);
+                    pstmt.setString(2, tripDate);
+                    pstmt.setString(3, schedStart);
+                    pstmt.setString(4, schedArrival);
+                    pstmt.setString(5, driver);
+                    pstmt.setInt(6, bus);
                     pstmt.executeUpdate();
 
-                    System.out.println("TripOffering added: TripNumber=" + tripNumber + ", Date=" + date
-                            + ", StartTime=" + startTime + ", ArrivalTime=" + arrivalTime + ", Driver=" + driverName
-                            + ", BusID=" + busID);
+                    System.out.println("\n✓ TripOffering added successfully:");
+                    System.out.println("  TripNumber: " + tripNum);
+                    System.out.println("  Date: " + tripDate);
+                    System.out.println("  ScheduledStartTime: " + schedStart);
+                    System.out.println("  ScheduledArrivalTime: " + schedArrival);
+                    System.out.println("  DriverName: " + driver);
+                    System.out.println("  BusID: " + bus);
                     return 0;
 
                 } catch (SQLException e) {
-                    System.err.println("Error adding trip offering: " + e.getMessage());
+                    System.err.println("✗ Error adding trip offering: " + e.getMessage());
                     return 1;
                 }
             }
