@@ -1,12 +1,12 @@
 # Pomona Transit System (PTS)
 
-A command-line application for managing bus records using Java, JDBC, and SQLite.
+A command-line application for managing transit system records using Java, JDBC, and SQLite.
 
 ## Current Features
 
-- Add buses to the database
-- List all buses
-- Delete buses by ID
+- Manage buses (add, list, delete)
+- Manage drivers (add, list, delete)
+- Manage stops (add, list, delete)
 - SQLite database for persistent storage
 - CLI argument parsing with Picocli
 
@@ -37,20 +37,22 @@ target/cs4350-lab-04-1.0-SNAPSHOT.jar
 ### Option 1: Using the shell script (Recommended)
 
 ```bash
-./pts <command> bus [arguments]
+./pts <command> <entity> [arguments]
 ```
 
 ### Option 2: Using java -jar directly
 
 ```bash
-java -jar target/cs4350-lab-04-1.0-SNAPSHOT.jar <command> bus [arguments]
+java -jar target/cs4350-lab-04-1.0-SNAPSHOT.jar <command> <entity> [arguments]
 ```
 
 ### Option 3: Using Maven exec plugin
 
 ```bash
-mvn exec:java -Dexec.mainClass="dev.klongid.App" -Dexec.args="<command> bus [arguments]"
+mvn exec:java -Dexec.mainClass="dev.klongid.App" -Dexec.args="<command> <entity> [arguments]"
 ```
+
+**Available entities:** bus, driver, stop
 
 ## Commands
 
@@ -87,13 +89,69 @@ BusID: 103 | Model: Prevost H3-45 | Year: 2021
 ./pts delete bus 102
 ```
 
-### Help
-Get help for any command:
+### Add a driver
 ```bash
-./pts --help
-./pts add bus --help
-./pts delete bus --help
-./pts list bus --help
+./pts add driver <name> <phone>
+```
+
+**Example:**
+```bash
+./pts add driver "John Smith" "555-1234"
+```
+
+### List all drivers
+```bash
+./pts list driver
+```
+
+**Example output:**
+```
+All drivers:
+Name: John Smith | Phone: 555-1234
+Name: Bob Wilson | Phone: 555-9012
+```
+
+### Delete a driver
+```bash
+./pts delete driver <name>
+```
+
+**Example:**
+```bash
+./pts delete driver "John Smith"
+```
+
+### Add a stop
+```bash
+./pts add stop <stopNumber> <address>
+```
+
+**Example:**
+```bash
+./pts add stop 1 "Main St & 1st Ave"
+```
+
+### List all stops
+```bash
+./pts list stop
+```
+
+**Example output:**
+```
+All stops:
+Number: 1 | Address: Main St & 1st Ave
+Number: 2 | Address: Campus Center
+Number: 3 | Address: Downtown Terminal
+```
+
+### Delete a stop
+```bash
+./pts delete stop <stopNumber>
+```
+
+**Example:**
+```bash
+./pts delete stop 2
 ```
 
 ## Database
@@ -108,6 +166,22 @@ CREATE TABLE Bus (
     BusID INTEGER PRIMARY KEY,
     Model TEXT NOT NULL,
     Year INTEGER NOT NULL
+)
+```
+
+**Driver Table:**
+```sql
+CREATE TABLE Driver (
+    DriverName TEXT PRIMARY KEY,
+    DriverTelephoneNumber TEXT NOT NULL
+)
+```
+
+**Stop Table:**
+```sql
+CREATE TABLE Stop (
+    StopNumber INTEGER PRIMARY KEY,
+    StopAddress TEXT NOT NULL
 )
 ```
 
