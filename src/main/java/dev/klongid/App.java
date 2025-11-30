@@ -9,6 +9,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.DayOfWeek;
+import java.time.temporal.TemporalAdjusters;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 
@@ -915,6 +918,7 @@ public class App implements Callable<Integer> {
             System.out.println("Usage: pts schedule <entity> [options]");
             System.out.println("  pts schedule trip <startLocation> <destination> <date>");
             System.out.println("  pts schedule driver <driverName> <date>");
+            System.out.println("  pts schedule driver <driverName> <date> --week");
             return 0;
         }
 
@@ -986,8 +990,19 @@ public class App implements Callable<Integer> {
             @Parameters(index = "1", description = "Date")
             private String date;
 
+            @Option(names = { "--week" }, description = "Show weekly schedule instead of single day")
+            private boolean weeklySchedule;
+
             @Override
             public Integer call() {
+                if (weeklySchedule) {
+                    return showWeeklySchedule();
+                } else {
+                    return showDailySchedule();
+                }
+            }
+
+            private Integer showDailySchedule() {
                 String sql = """
                         SELECT d.DriverName, tof.Date,
                                t.StartLocationName, t.DestinationName,
@@ -1035,6 +1050,76 @@ public class App implements Callable<Integer> {
 
                 } catch (SQLException e) {
                     System.err.println("Error querying driver schedule: " + e.getMessage());
+                    return 1;
+                }
+            }
+
+            private Integer showWeeklySchedule() {
+                // Calculate week boundaries (Sunday-Saturday)
+                LocalDate givenDate = LocalDate.parse(date);
+                LocalDate weekStart = givenDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
+                LocalDate weekEnd = weekStart.plusDays(6);
+
+                String sql = """
+                        SELECT d.DriverName, tof.Date,
+                               t.StartLocationName, t.DestinationName,
+                               tof.ScheduledStartTime, tof.ScheduledArrivalTime,
+                               tof.BusID
+                        FROM Driver d
+                        JOIN TripOffering tof ON d.DriverName = tof.DriverName
+                        JOIN Trip t ON tof.TripNumber = t.TripNumber
+                        WHERE d.DriverName = ? AND tof.Date >= ? AND tof.Date <= ?
+                        ORDER BY tof.Date, tof.ScheduledStartTime
+                        """;
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setString(1, driverName);
+                    pstmt.setString(2, weekStart.toString());
+                    pstmt.setString(3, weekEnd.toString());
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        boolean hasResults = false;
+                        String currentDate = null;
+
+                        System.out.println("Weekly schedule for Driver: " + driverName);
+                        System.out.println("Week: " + weekStart + " to " + weekEnd);
+                        System.out.println();
+
+                        while (rs.next()) {
+                            hasResults = true;
+                            String tripDate = rs.getString("Date");
+
+                            // Print date header when date changes
+                            if (!tripDate.equals(currentDate)) {
+                                if (currentDate != null) {
+                                    System.out.println(); // Blank line between days
+                                }
+                                LocalDate dateObj = LocalDate.parse(tripDate);
+                                System.out.println(dateObj.getDayOfWeek() + ", " + tripDate + ":");
+                                currentDate = tripDate;
+                            }
+
+                            System.out.printf(
+                                    "  Start: %s | Destination: %s | StartTime: %s | ArrivalTime: %s | BusID: %d%n",
+                                    rs.getString("StartLocationName"),
+                                    rs.getString("DestinationName"),
+                                    rs.getString("ScheduledStartTime"),
+                                    rs.getString("ScheduledArrivalTime"),
+                                    rs.getInt("BusID"));
+                        }
+
+                        if (!hasResults) {
+                            System.out.println("No schedule found for driver '" + driverName + "' during the week of "
+                                    + weekStart + ".");
+                        }
+
+                        return 0;
+                    }
+
+                } catch (SQLException e) {
+                    System.err.println("Error querying driver weekly schedule: " + e.getMessage());
                     return 1;
                 }
             }

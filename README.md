@@ -348,6 +348,34 @@ Schedule for Driver: John Smith on 2024-01-15:
   Start: San Diego | Destination: Sacramento | StartTime: 14:30 | ArrivalTime: 18:30 | BusID: 103
 ```
 
+### Weekly schedule for a driver
+```bash
+./pts schedule driver <driverName> <date> --week
+```
+
+Shows the driver's schedule for the entire week (Sunday-Saturday) containing the specified date.
+
+**Example:**
+```bash
+./pts schedule driver "John Smith" "2024-01-15" --week
+```
+
+**Example output:**
+```
+Weekly schedule for Driver: John Smith
+Week: 2024-01-14 to 2024-01-20
+
+SUNDAY, 2024-01-14:
+  Start: Los Angeles | Destination: San Francisco | StartTime: 08:00 | ArrivalTime: 12:00 | BusID: 101
+
+MONDAY, 2024-01-15:
+  Start: Los Angeles | Destination: San Francisco | StartTime: 08:00 | ArrivalTime: 12:00 | BusID: 101
+  Start: San Diego | Destination: Sacramento | StartTime: 14:30 | ArrivalTime: 18:30 | BusID: 103
+
+WEDNESDAY, 2024-01-17:
+  Start: San Diego | Destination: Los Angeles | StartTime: 09:00 | ArrivalTime: 11:00 | BusID: 102
+```
+
 ### Display stops for a trip
 ```bash
 ./pts stops <tripNumber>
