@@ -25,13 +25,14 @@ public class App implements Callable<Integer> {
         System.out.println("Pomona Transit System");
         System.out.println("Usage: pts <command> <entity> [options]");
         System.out.println("Commands: add, delete, list");
-        System.out.println("Entities: bus, driver, stop, trip, tripoffering, tripstopinfo");
+        System.out.println("Entities: bus, driver, stop, trip, tripoffering, tripstopinfo, actualtripstopinfo");
         return 0;
     }
 
     @Command(name = "add", description = "Add entities", subcommands = { AddCommand.BusCommand.class,
             AddCommand.DriverCommand.class, AddCommand.StopCommand.class, AddCommand.TripCommand.class,
-            AddCommand.TripOfferingCommand.class, AddCommand.TripStopInfoCommand.class })
+            AddCommand.TripOfferingCommand.class, AddCommand.TripStopInfoCommand.class,
+            AddCommand.ActualTripStopInfoCommand.class })
     static class AddCommand implements Callable<Integer> {
         @Override
         public Integer call() {
@@ -43,6 +44,8 @@ public class App implements Callable<Integer> {
             System.out.println(
                     "  pts add tripoffering <tripNumber> <date> <startTime> <arrivalTime> <driverName> <busID>");
             System.out.println("  pts add tripstopinfo <tripNumber> <stopNumber> <sequenceNumber> <drivingTime>");
+            System.out.println(
+                    "  pts add actualtripstopinfo <tripNumber> <date> <startTime> <stopNumber> <schedArrival> <actualStart> <actualArrival> <passIn> <passOut>");
             return 0;
         }
 
@@ -255,11 +258,70 @@ public class App implements Callable<Integer> {
                 }
             }
         }
+
+        @Command(name = "actualtripstopinfo", description = "Add a new actual trip stop info")
+        static class ActualTripStopInfoCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Trip number")
+            private int tripNumber;
+
+            @Parameters(index = "1", description = "Date")
+            private String date;
+
+            @Parameters(index = "2", description = "Scheduled start time")
+            private String scheduledStartTime;
+
+            @Parameters(index = "3", description = "Stop number")
+            private int stopNumber;
+
+            @Parameters(index = "4", description = "Scheduled arrival time")
+            private String scheduledArrivalTime;
+
+            @Parameters(index = "5", description = "Actual start time")
+            private String actualStartTime;
+
+            @Parameters(index = "6", description = "Actual arrival time")
+            private String actualArrivalTime;
+
+            @Parameters(index = "7", description = "Number of passengers in")
+            private int passengersIn;
+
+            @Parameters(index = "8", description = "Number of passengers out")
+            private int passengersOut;
+
+            @Override
+            public Integer call() {
+                String sql = "INSERT INTO ActualTripStopInfo (TripNumber, Date, ScheduledStartTime, StopNumber, ScheduledArrivalTime, ActualStartTime, ActualArrivalTime, NumberOfPassengersIn, NumberOfPassengersOut) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    pstmt.setString(2, date);
+                    pstmt.setString(3, scheduledStartTime);
+                    pstmt.setInt(4, stopNumber);
+                    pstmt.setString(5, scheduledArrivalTime);
+                    pstmt.setString(6, actualStartTime);
+                    pstmt.setString(7, actualArrivalTime);
+                    pstmt.setInt(8, passengersIn);
+                    pstmt.setInt(9, passengersOut);
+                    pstmt.executeUpdate();
+
+                    System.out.println("ActualTripStopInfo added: TripNumber=" + tripNumber + ", Date=" + date
+                            + ", ScheduledStartTime=" + scheduledStartTime + ", StopNumber=" + stopNumber);
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error adding actual trip stop info: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
     }
 
     @Command(name = "delete", description = "Delete entities", subcommands = { DeleteCommand.BusCommand.class,
             DeleteCommand.DriverCommand.class, DeleteCommand.StopCommand.class, DeleteCommand.TripCommand.class,
-            DeleteCommand.TripOfferingCommand.class, DeleteCommand.TripStopInfoCommand.class })
+            DeleteCommand.TripOfferingCommand.class, DeleteCommand.TripStopInfoCommand.class,
+            DeleteCommand.ActualTripStopInfoCommand.class })
     static class DeleteCommand implements Callable<Integer> {
         @Override
         public Integer call() {
@@ -270,6 +332,7 @@ public class App implements Callable<Integer> {
             System.out.println("  pts delete trip <tripNumber>");
             System.out.println("  pts delete tripoffering <tripNumber> <date> <startTime>");
             System.out.println("  pts delete tripstopinfo <tripNumber> <stopNumber>");
+            System.out.println("  pts delete actualtripstopinfo <tripNumber> <date> <startTime> <stopNumber>");
             return 0;
         }
 
@@ -468,11 +531,56 @@ public class App implements Callable<Integer> {
                 }
             }
         }
+
+        @Command(name = "actualtripstopinfo", description = "Delete an actual trip stop info")
+        static class ActualTripStopInfoCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Trip number")
+            private int tripNumber;
+
+            @Parameters(index = "1", description = "Date")
+            private String date;
+
+            @Parameters(index = "2", description = "Scheduled start time")
+            private String scheduledStartTime;
+
+            @Parameters(index = "3", description = "Stop number")
+            private int stopNumber;
+
+            @Override
+            public Integer call() {
+                String sql = "DELETE FROM ActualTripStopInfo WHERE TripNumber = ? AND Date = ? AND ScheduledStartTime = ? AND StopNumber = ?";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    pstmt.setString(2, date);
+                    pstmt.setString(3, scheduledStartTime);
+                    pstmt.setInt(4, stopNumber);
+                    int rowsDeleted = pstmt.executeUpdate();
+
+                    if (rowsDeleted > 0) {
+                        System.out.println("ActualTripStopInfo deleted: TripNumber=" + tripNumber + ", Date=" + date
+                                + ", ScheduledStartTime=" + scheduledStartTime + ", StopNumber=" + stopNumber);
+                        return 0;
+                    } else {
+                        System.out.println("No actual trip stop info found with TripNumber=" + tripNumber + ", Date="
+                                + date + ", ScheduledStartTime=" + scheduledStartTime + ", StopNumber=" + stopNumber);
+                        return 1;
+                    }
+
+                } catch (SQLException e) {
+                    System.err.println("Error deleting actual trip stop info: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
     }
 
     @Command(name = "list", description = "List entities", subcommands = { ListCommand.BusCommand.class,
             ListCommand.DriverCommand.class, ListCommand.StopCommand.class, ListCommand.TripCommand.class,
-            ListCommand.TripOfferingCommand.class, ListCommand.TripStopInfoCommand.class })
+            ListCommand.TripOfferingCommand.class, ListCommand.TripStopInfoCommand.class,
+            ListCommand.ActualTripStopInfoCommand.class })
     static class ListCommand implements Callable<Integer> {
         @Override
         public Integer call() {
@@ -483,6 +591,7 @@ public class App implements Callable<Integer> {
             System.out.println("  pts list trip");
             System.out.println("  pts list tripoffering");
             System.out.println("  pts list tripstopinfo");
+            System.out.println("  pts list actualtripstopinfo");
             return 0;
         }
 
@@ -682,6 +791,46 @@ public class App implements Callable<Integer> {
 
                 } catch (SQLException e) {
                     System.err.println("Error querying trip stop info: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "actualtripstopinfo", description = "List all actual trip stop info")
+        static class ActualTripStopInfoCommand implements Callable<Integer> {
+            @Override
+            public Integer call() {
+                String sql = "SELECT TripNumber, Date, ScheduledStartTime, StopNumber, ScheduledArrivalTime, ActualStartTime, ActualArrivalTime, NumberOfPassengersIn, NumberOfPassengersOut FROM ActualTripStopInfo";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql);
+                        ResultSet rs = pstmt.executeQuery()) {
+
+                    System.out.println("All actual trip stop info:");
+                    boolean hasResults = false;
+                    while (rs.next()) {
+                        hasResults = true;
+                        System.out.printf(
+                                "TripNumber: %d | Date: %s | StartTime: %s | StopNumber: %d | SchedArrival: %s | ActualStart: %s | ActualArrival: %s | PassIn: %d | PassOut: %d%n",
+                                rs.getInt("TripNumber"),
+                                rs.getString("Date"),
+                                rs.getString("ScheduledStartTime"),
+                                rs.getInt("StopNumber"),
+                                rs.getString("ScheduledArrivalTime"),
+                                rs.getString("ActualStartTime"),
+                                rs.getString("ActualArrivalTime"),
+                                rs.getInt("NumberOfPassengersIn"),
+                                rs.getInt("NumberOfPassengersOut"));
+                    }
+
+                    if (!hasResults) {
+                        System.out.println("No actual trip stop info found.");
+                    }
+
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error querying actual trip stop info: " + e.getMessage());
                     return 1;
                 }
             }

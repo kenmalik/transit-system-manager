@@ -10,6 +10,7 @@ A command-line application for managing transit system records using Java, JDBC,
 - Manage trips (add, list, delete)
 - Manage trip offerings (add, list, delete)
 - Manage trip stop info (add, list, delete)
+- Manage actual trip stop info (add, list, delete)
 - SQLite database for persistent storage
 - CLI argument parsing with Picocli
 
@@ -55,7 +56,7 @@ java -jar target/cs4350-lab-04-1.0-SNAPSHOT.jar <command> <entity> [arguments]
 mvn exec:java -Dexec.mainClass="dev.klongid.App" -Dexec.args="<command> <entity> [arguments]"
 ```
 
-**Available entities:** bus, driver, stop, trip, tripoffering, tripstopinfo
+**Available entities:** bus, driver, stop, trip, tripoffering, tripstopinfo, actualtripstopinfo
 
 ## Commands
 
@@ -254,6 +255,38 @@ TripNumber: 1 | StopNumber: 3 | Sequence: 3 | DrivingTime: 60
 ./pts delete tripstopinfo 1 2
 ```
 
+### Add actual trip stop info
+```bash
+./pts add actualtripstopinfo <tripNumber> <date> <startTime> <stopNumber> <schedArrival> <actualStart> <actualArrival> <passIn> <passOut>
+```
+
+**Example:**
+```bash
+./pts add actualtripstopinfo 1 "2024-01-15" "08:00" 1 "08:15" "08:02" "08:17" 5 2
+```
+
+### List all actual trip stop info
+```bash
+./pts list actualtripstopinfo
+```
+
+**Example output:**
+```
+All actual trip stop info:
+TripNumber: 1 | Date: 2024-01-15 | StartTime: 08:00 | StopNumber: 1 | SchedArrival: 08:15 | ActualStart: 08:02 | ActualArrival: 08:17 | PassIn: 5 | PassOut: 2
+TripNumber: 1 | Date: 2024-01-15 | StartTime: 08:00 | StopNumber: 2 | SchedArrival: 08:45 | ActualStart: 08:44 | ActualArrival: 08:48 | PassIn: 3 | PassOut: 4
+```
+
+### Delete actual trip stop info
+```bash
+./pts delete actualtripstopinfo <tripNumber> <date> <startTime> <stopNumber>
+```
+
+**Example:**
+```bash
+./pts delete actualtripstopinfo 1 "2024-01-15" "08:00" 2
+```
+
 ## Database
 
 The application uses SQLite with a database file `app.db` created in the project root directory.
@@ -319,6 +352,24 @@ CREATE TABLE TripStopInfo (
     DrivingTime INTEGER NOT NULL,
     PRIMARY KEY (TripNumber, StopNumber),
     FOREIGN KEY (TripNumber) REFERENCES Trip(TripNumber) ON DELETE CASCADE,
+    FOREIGN KEY (StopNumber) REFERENCES Stop(StopNumber) ON DELETE CASCADE
+)
+```
+
+**ActualTripStopInfo Table:**
+```sql
+CREATE TABLE ActualTripStopInfo (
+    TripNumber INTEGER NOT NULL,
+    Date TEXT NOT NULL,
+    ScheduledStartTime TEXT NOT NULL,
+    StopNumber INTEGER NOT NULL,
+    ScheduledArrivalTime TEXT,
+    ActualStartTime TEXT,
+    ActualArrivalTime TEXT,
+    NumberOfPassengersIn INTEGER,
+    NumberOfPassengersOut INTEGER,
+    PRIMARY KEY (TripNumber, Date, ScheduledStartTime, StopNumber),
+    FOREIGN KEY (TripNumber, Date, ScheduledStartTime) REFERENCES TripOffering(TripNumber, Date, ScheduledStartTime) ON DELETE CASCADE,
     FOREIGN KEY (StopNumber) REFERENCES Stop(StopNumber) ON DELETE CASCADE
 )
 ```

@@ -78,12 +78,30 @@ public class DatabaseManager {
                     )
                     """;
 
+            String createActualTripStopInfoTableSQL = """
+                    CREATE TABLE IF NOT EXISTS ActualTripStopInfo (
+                        TripNumber INTEGER NOT NULL,
+                        Date TEXT NOT NULL,
+                        ScheduledStartTime TEXT NOT NULL,
+                        StopNumber INTEGER NOT NULL,
+                        ScheduledArrivalTime TEXT,
+                        ActualStartTime TEXT,
+                        ActualArrivalTime TEXT,
+                        NumberOfPassengersIn INTEGER,
+                        NumberOfPassengersOut INTEGER,
+                        PRIMARY KEY (TripNumber, Date, ScheduledStartTime, StopNumber),
+                        FOREIGN KEY (TripNumber, Date, ScheduledStartTime) REFERENCES TripOffering(TripNumber, Date, ScheduledStartTime) ON DELETE CASCADE,
+                        FOREIGN KEY (StopNumber) REFERENCES Stop(StopNumber) ON DELETE CASCADE
+                    )
+                    """;
+
             stmt.execute(createBusTableSQL);
             stmt.execute(createDriverTableSQL);
             stmt.execute(createStopTableSQL);
             stmt.execute(createTripTableSQL);
             stmt.execute(createTripOfferingTableSQL);
             stmt.execute(createTripStopInfoTableSQL);
+            stmt.execute(createActualTripStopInfoTableSQL);
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
             e.printStackTrace();
