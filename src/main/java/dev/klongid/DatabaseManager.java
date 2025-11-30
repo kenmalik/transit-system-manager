@@ -9,7 +9,12 @@ public class DatabaseManager {
     private static final String DB_URL = "jdbc:sqlite:app.db";
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(DB_URL);
+        Connection conn = DriverManager.getConnection(DB_URL);
+        // Enable foreign key constraints in SQLite
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("PRAGMA foreign_keys = ON");
+        }
+        return conn;
     }
 
     public static void initializeDatabase() {
@@ -38,9 +43,47 @@ public class DatabaseManager {
                     )
                     """;
 
+            String createTripTableSQL = """
+                    CREATE TABLE IF NOT EXISTS Trip (
+                        TripNumber INTEGER PRIMARY KEY,
+                        StartLocationName TEXT NOT NULL,
+                        DestinationName TEXT NOT NULL
+                    )
+                    """;
+
+            String createTripOfferingTableSQL = """
+                    CREATE TABLE IF NOT EXISTS TripOffering (
+                        TripNumber INTEGER NOT NULL,
+                        Date TEXT NOT NULL,
+                        ScheduledStartTime TEXT NOT NULL,
+                        ScheduledArrivalTime TEXT NOT NULL,
+                        DriverName TEXT,
+                        BusID INTEGER,
+                        PRIMARY KEY (TripNumber, Date, ScheduledStartTime),
+                        FOREIGN KEY (TripNumber) REFERENCES Trip(TripNumber) ON DELETE CASCADE,
+                        FOREIGN KEY (DriverName) REFERENCES Driver(DriverName),
+                        FOREIGN KEY (BusID) REFERENCES Bus(BusID)
+                    )
+                    """;
+
+            String createTripStopInfoTableSQL = """
+                    CREATE TABLE IF NOT EXISTS TripStopInfo (
+                        TripNumber INTEGER NOT NULL,
+                        StopNumber INTEGER NOT NULL,
+                        SequenceNumber INTEGER NOT NULL,
+                        DrivingTime INTEGER NOT NULL,
+                        PRIMARY KEY (TripNumber, StopNumber),
+                        FOREIGN KEY (TripNumber) REFERENCES Trip(TripNumber) ON DELETE CASCADE,
+                        FOREIGN KEY (StopNumber) REFERENCES Stop(StopNumber) ON DELETE CASCADE
+                    )
+                    """;
+
             stmt.execute(createBusTableSQL);
             stmt.execute(createDriverTableSQL);
             stmt.execute(createStopTableSQL);
+            stmt.execute(createTripTableSQL);
+            stmt.execute(createTripOfferingTableSQL);
+            stmt.execute(createTripStopInfoTableSQL);
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
             e.printStackTrace();

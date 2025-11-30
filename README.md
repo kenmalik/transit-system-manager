@@ -7,6 +7,9 @@ A command-line application for managing transit system records using Java, JDBC,
 - Manage buses (add, list, delete)
 - Manage drivers (add, list, delete)
 - Manage stops (add, list, delete)
+- Manage trips (add, list, delete)
+- Manage trip offerings (add, list, delete)
+- Manage trip stop info (add, list, delete)
 - SQLite database for persistent storage
 - CLI argument parsing with Picocli
 
@@ -52,7 +55,7 @@ java -jar target/cs4350-lab-04-1.0-SNAPSHOT.jar <command> <entity> [arguments]
 mvn exec:java -Dexec.mainClass="dev.klongid.App" -Dexec.args="<command> <entity> [arguments]"
 ```
 
-**Available entities:** bus, driver, stop
+**Available entities:** bus, driver, stop, trip, tripoffering, tripstopinfo
 
 ## Commands
 
@@ -154,6 +157,103 @@ Number: 3 | Address: Downtown Terminal
 ./pts delete stop 2
 ```
 
+### Add a trip
+```bash
+./pts add trip <tripNumber> <startLocation> <destination>
+```
+
+**Example:**
+```bash
+./pts add trip 1 "Los Angeles" "San Francisco"
+```
+
+### List all trips
+```bash
+./pts list trip
+```
+
+**Example output:**
+```
+All trips:
+TripNumber: 1 | Start: Los Angeles | Destination: San Francisco
+TripNumber: 2 | Start: San Diego | Destination: Sacramento
+```
+
+### Delete a trip
+```bash
+./pts delete trip <tripNumber>
+```
+
+**Example:**
+```bash
+./pts delete trip 1
+```
+
+### Add a trip offering
+```bash
+./pts add tripoffering <tripNumber> <date> <startTime> <arrivalTime> <driverName> <busID>
+```
+
+**Example:**
+```bash
+./pts add tripoffering 1 "2024-01-15" "08:00" "12:00" "John Smith" 101
+```
+
+### List all trip offerings
+```bash
+./pts list tripoffering
+```
+
+**Example output:**
+```
+All trip offerings:
+TripNumber: 1 | Date: 2024-01-15 | Start: 08:00 | Arrival: 12:00 | Driver: John Smith | BusID: 101
+TripNumber: 1 | Date: 2024-01-16 | Start: 09:00 | Arrival: 13:00 | Driver: Bob Wilson | BusID: 102
+```
+
+### Delete a trip offering
+```bash
+./pts delete tripoffering <tripNumber> <date> <startTime>
+```
+
+**Example:**
+```bash
+./pts delete tripoffering 1 "2024-01-15" "08:00"
+```
+
+### Add trip stop info
+```bash
+./pts add tripstopinfo <tripNumber> <stopNumber> <sequenceNumber> <drivingTime>
+```
+
+**Example:**
+```bash
+./pts add tripstopinfo 1 1 1 0
+```
+
+### List all trip stop info
+```bash
+./pts list tripstopinfo
+```
+
+**Example output:**
+```
+All trip stop info:
+TripNumber: 1 | StopNumber: 1 | Sequence: 1 | DrivingTime: 0
+TripNumber: 1 | StopNumber: 2 | Sequence: 2 | DrivingTime: 30
+TripNumber: 1 | StopNumber: 3 | Sequence: 3 | DrivingTime: 60
+```
+
+### Delete trip stop info
+```bash
+./pts delete tripstopinfo <tripNumber> <stopNumber>
+```
+
+**Example:**
+```bash
+./pts delete tripstopinfo 1 2
+```
+
 ## Database
 
 The application uses SQLite with a database file `app.db` created in the project root directory.
@@ -182,6 +282,44 @@ CREATE TABLE Driver (
 CREATE TABLE Stop (
     StopNumber INTEGER PRIMARY KEY,
     StopAddress TEXT NOT NULL
+)
+```
+
+**Trip Table:**
+```sql
+CREATE TABLE Trip (
+    TripNumber INTEGER PRIMARY KEY,
+    StartLocationName TEXT NOT NULL,
+    DestinationName TEXT NOT NULL
+)
+```
+
+**TripOffering Table:**
+```sql
+CREATE TABLE TripOffering (
+    TripNumber INTEGER NOT NULL,
+    Date TEXT NOT NULL,
+    ScheduledStartTime TEXT NOT NULL,
+    ScheduledArrivalTime TEXT NOT NULL,
+    DriverName TEXT,
+    BusID INTEGER,
+    PRIMARY KEY (TripNumber, Date, ScheduledStartTime),
+    FOREIGN KEY (TripNumber) REFERENCES Trip(TripNumber) ON DELETE CASCADE,
+    FOREIGN KEY (DriverName) REFERENCES Driver(DriverName),
+    FOREIGN KEY (BusID) REFERENCES Bus(BusID)
+)
+```
+
+**TripStopInfo Table:**
+```sql
+CREATE TABLE TripStopInfo (
+    TripNumber INTEGER NOT NULL,
+    StopNumber INTEGER NOT NULL,
+    SequenceNumber INTEGER NOT NULL,
+    DrivingTime INTEGER NOT NULL,
+    PRIMARY KEY (TripNumber, StopNumber),
+    FOREIGN KEY (TripNumber) REFERENCES Trip(TripNumber) ON DELETE CASCADE,
+    FOREIGN KEY (StopNumber) REFERENCES Stop(StopNumber) ON DELETE CASCADE
 )
 ```
 

@@ -25,12 +25,13 @@ public class App implements Callable<Integer> {
         System.out.println("Pomona Transit System");
         System.out.println("Usage: pts <command> <entity> [options]");
         System.out.println("Commands: add, delete, list");
-        System.out.println("Entities: bus, driver, stop");
+        System.out.println("Entities: bus, driver, stop, trip, tripoffering, tripstopinfo");
         return 0;
     }
 
     @Command(name = "add", description = "Add entities", subcommands = { AddCommand.BusCommand.class,
-            AddCommand.DriverCommand.class, AddCommand.StopCommand.class })
+            AddCommand.DriverCommand.class, AddCommand.StopCommand.class, AddCommand.TripCommand.class,
+            AddCommand.TripOfferingCommand.class, AddCommand.TripStopInfoCommand.class })
     static class AddCommand implements Callable<Integer> {
         @Override
         public Integer call() {
@@ -38,6 +39,10 @@ public class App implements Callable<Integer> {
             System.out.println("  pts add bus <busID> <model> <year>");
             System.out.println("  pts add driver <name> <phone>");
             System.out.println("  pts add stop <stopNumber> <address>");
+            System.out.println("  pts add trip <tripNumber> <startLocation> <destination>");
+            System.out.println(
+                    "  pts add tripoffering <tripNumber> <date> <startTime> <arrivalTime> <driverName> <busID>");
+            System.out.println("  pts add tripstopinfo <tripNumber> <stopNumber> <sequenceNumber> <drivingTime>");
             return 0;
         }
 
@@ -131,10 +136,130 @@ public class App implements Callable<Integer> {
                 }
             }
         }
+
+        @Command(name = "trip", description = "Add a new trip")
+        static class TripCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Trip number")
+            private int tripNumber;
+
+            @Parameters(index = "1", description = "Start location name")
+            private String startLocation;
+
+            @Parameters(index = "2", description = "Destination name")
+            private String destination;
+
+            @Override
+            public Integer call() {
+                String sql = "INSERT INTO Trip (TripNumber, StartLocationName, DestinationName) VALUES (?, ?, ?)";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    pstmt.setString(2, startLocation);
+                    pstmt.setString(3, destination);
+                    pstmt.executeUpdate();
+
+                    System.out.println("Trip added: Number=" + tripNumber + ", Start=" + startLocation
+                            + ", Destination=" + destination);
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error adding trip: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "tripoffering", description = "Add a new trip offering")
+        static class TripOfferingCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Trip number")
+            private int tripNumber;
+
+            @Parameters(index = "1", description = "Date")
+            private String date;
+
+            @Parameters(index = "2", description = "Scheduled start time")
+            private String startTime;
+
+            @Parameters(index = "3", description = "Scheduled arrival time")
+            private String arrivalTime;
+
+            @Parameters(index = "4", description = "Driver name")
+            private String driverName;
+
+            @Parameters(index = "5", description = "Bus ID")
+            private int busID;
+
+            @Override
+            public Integer call() {
+                String sql = "INSERT INTO TripOffering (TripNumber, Date, ScheduledStartTime, ScheduledArrivalTime, DriverName, BusID) VALUES (?, ?, ?, ?, ?, ?)";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    pstmt.setString(2, date);
+                    pstmt.setString(3, startTime);
+                    pstmt.setString(4, arrivalTime);
+                    pstmt.setString(5, driverName);
+                    pstmt.setInt(6, busID);
+                    pstmt.executeUpdate();
+
+                    System.out.println("TripOffering added: TripNumber=" + tripNumber + ", Date=" + date
+                            + ", StartTime=" + startTime + ", ArrivalTime=" + arrivalTime + ", Driver=" + driverName
+                            + ", BusID=" + busID);
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error adding trip offering: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "tripstopinfo", description = "Add a new trip stop info")
+        static class TripStopInfoCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Trip number")
+            private int tripNumber;
+
+            @Parameters(index = "1", description = "Stop number")
+            private int stopNumber;
+
+            @Parameters(index = "2", description = "Sequence number")
+            private int sequenceNumber;
+
+            @Parameters(index = "3", description = "Driving time")
+            private int drivingTime;
+
+            @Override
+            public Integer call() {
+                String sql = "INSERT INTO TripStopInfo (TripNumber, StopNumber, SequenceNumber, DrivingTime) VALUES (?, ?, ?, ?)";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    pstmt.setInt(2, stopNumber);
+                    pstmt.setInt(3, sequenceNumber);
+                    pstmt.setInt(4, drivingTime);
+                    pstmt.executeUpdate();
+
+                    System.out.println("TripStopInfo added: TripNumber=" + tripNumber + ", StopNumber=" + stopNumber
+                            + ", Sequence=" + sequenceNumber + ", DrivingTime=" + drivingTime);
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error adding trip stop info: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
     }
 
     @Command(name = "delete", description = "Delete entities", subcommands = { DeleteCommand.BusCommand.class,
-            DeleteCommand.DriverCommand.class, DeleteCommand.StopCommand.class })
+            DeleteCommand.DriverCommand.class, DeleteCommand.StopCommand.class, DeleteCommand.TripCommand.class,
+            DeleteCommand.TripOfferingCommand.class, DeleteCommand.TripStopInfoCommand.class })
     static class DeleteCommand implements Callable<Integer> {
         @Override
         public Integer call() {
@@ -142,6 +267,9 @@ public class App implements Callable<Integer> {
             System.out.println("  pts delete bus <busID>");
             System.out.println("  pts delete driver <name>");
             System.out.println("  pts delete stop <stopNumber>");
+            System.out.println("  pts delete trip <tripNumber>");
+            System.out.println("  pts delete tripoffering <tripNumber> <date> <startTime>");
+            System.out.println("  pts delete tripstopinfo <tripNumber> <stopNumber>");
             return 0;
         }
 
@@ -234,10 +362,117 @@ public class App implements Callable<Integer> {
                 }
             }
         }
+
+        @Command(name = "trip", description = "Delete a trip")
+        static class TripCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Trip number to remove")
+            private int tripNumber;
+
+            @Override
+            public Integer call() {
+                String sql = "DELETE FROM Trip WHERE TripNumber = ?";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    int rowsDeleted = pstmt.executeUpdate();
+
+                    if (rowsDeleted > 0) {
+                        System.out.println("Trip deleted: Number=" + tripNumber);
+                        return 0;
+                    } else {
+                        System.out.println("No trip found with number: " + tripNumber);
+                        return 1;
+                    }
+
+                } catch (SQLException e) {
+                    System.err.println("Error deleting trip: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "tripoffering", description = "Delete a trip offering")
+        static class TripOfferingCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Trip number")
+            private int tripNumber;
+
+            @Parameters(index = "1", description = "Date")
+            private String date;
+
+            @Parameters(index = "2", description = "Scheduled start time")
+            private String startTime;
+
+            @Override
+            public Integer call() {
+                String sql = "DELETE FROM TripOffering WHERE TripNumber = ? AND Date = ? AND ScheduledStartTime = ?";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    pstmt.setString(2, date);
+                    pstmt.setString(3, startTime);
+                    int rowsDeleted = pstmt.executeUpdate();
+
+                    if (rowsDeleted > 0) {
+                        System.out.println("TripOffering deleted: TripNumber=" + tripNumber + ", Date=" + date
+                                + ", StartTime=" + startTime);
+                        return 0;
+                    } else {
+                        System.out.println("No trip offering found with TripNumber=" + tripNumber + ", Date=" + date
+                                + ", StartTime=" + startTime);
+                        return 1;
+                    }
+
+                } catch (SQLException e) {
+                    System.err.println("Error deleting trip offering: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "tripstopinfo", description = "Delete a trip stop info")
+        static class TripStopInfoCommand implements Callable<Integer> {
+            @Parameters(index = "0", description = "Trip number")
+            private int tripNumber;
+
+            @Parameters(index = "1", description = "Stop number")
+            private int stopNumber;
+
+            @Override
+            public Integer call() {
+                String sql = "DELETE FROM TripStopInfo WHERE TripNumber = ? AND StopNumber = ?";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, tripNumber);
+                    pstmt.setInt(2, stopNumber);
+                    int rowsDeleted = pstmt.executeUpdate();
+
+                    if (rowsDeleted > 0) {
+                        System.out.println(
+                                "TripStopInfo deleted: TripNumber=" + tripNumber + ", StopNumber=" + stopNumber);
+                        return 0;
+                    } else {
+                        System.out.println(
+                                "No trip stop info found with TripNumber=" + tripNumber + ", StopNumber=" + stopNumber);
+                        return 1;
+                    }
+
+                } catch (SQLException e) {
+                    System.err.println("Error deleting trip stop info: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
     }
 
     @Command(name = "list", description = "List entities", subcommands = { ListCommand.BusCommand.class,
-            ListCommand.DriverCommand.class, ListCommand.StopCommand.class })
+            ListCommand.DriverCommand.class, ListCommand.StopCommand.class, ListCommand.TripCommand.class,
+            ListCommand.TripOfferingCommand.class, ListCommand.TripStopInfoCommand.class })
     static class ListCommand implements Callable<Integer> {
         @Override
         public Integer call() {
@@ -245,6 +480,9 @@ public class App implements Callable<Integer> {
             System.out.println("  pts list bus");
             System.out.println("  pts list driver");
             System.out.println("  pts list stop");
+            System.out.println("  pts list trip");
+            System.out.println("  pts list tripoffering");
+            System.out.println("  pts list tripstopinfo");
             return 0;
         }
 
@@ -340,6 +578,110 @@ public class App implements Callable<Integer> {
 
                 } catch (SQLException e) {
                     System.err.println("Error querying stops: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "trip", description = "List all trips")
+        static class TripCommand implements Callable<Integer> {
+            @Override
+            public Integer call() {
+                String sql = "SELECT TripNumber, StartLocationName, DestinationName FROM Trip";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql);
+                        ResultSet rs = pstmt.executeQuery()) {
+
+                    System.out.println("All trips:");
+                    boolean hasResults = false;
+                    while (rs.next()) {
+                        hasResults = true;
+                        System.out.printf("TripNumber: %d | Start: %s | Destination: %s%n",
+                                rs.getInt("TripNumber"),
+                                rs.getString("StartLocationName"),
+                                rs.getString("DestinationName"));
+                    }
+
+                    if (!hasResults) {
+                        System.out.println("No trips found.");
+                    }
+
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error querying trips: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "tripoffering", description = "List all trip offerings")
+        static class TripOfferingCommand implements Callable<Integer> {
+            @Override
+            public Integer call() {
+                String sql = "SELECT TripNumber, Date, ScheduledStartTime, ScheduledArrivalTime, DriverName, BusID FROM TripOffering";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql);
+                        ResultSet rs = pstmt.executeQuery()) {
+
+                    System.out.println("All trip offerings:");
+                    boolean hasResults = false;
+                    while (rs.next()) {
+                        hasResults = true;
+                        System.out.printf(
+                                "TripNumber: %d | Date: %s | Start: %s | Arrival: %s | Driver: %s | BusID: %d%n",
+                                rs.getInt("TripNumber"),
+                                rs.getString("Date"),
+                                rs.getString("ScheduledStartTime"),
+                                rs.getString("ScheduledArrivalTime"),
+                                rs.getString("DriverName"),
+                                rs.getInt("BusID"));
+                    }
+
+                    if (!hasResults) {
+                        System.out.println("No trip offerings found.");
+                    }
+
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error querying trip offerings: " + e.getMessage());
+                    return 1;
+                }
+            }
+        }
+
+        @Command(name = "tripstopinfo", description = "List all trip stop info")
+        static class TripStopInfoCommand implements Callable<Integer> {
+            @Override
+            public Integer call() {
+                String sql = "SELECT TripNumber, StopNumber, SequenceNumber, DrivingTime FROM TripStopInfo";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                        PreparedStatement pstmt = conn.prepareStatement(sql);
+                        ResultSet rs = pstmt.executeQuery()) {
+
+                    System.out.println("All trip stop info:");
+                    boolean hasResults = false;
+                    while (rs.next()) {
+                        hasResults = true;
+                        System.out.printf("TripNumber: %d | StopNumber: %d | Sequence: %d | DrivingTime: %d%n",
+                                rs.getInt("TripNumber"),
+                                rs.getInt("StopNumber"),
+                                rs.getInt("SequenceNumber"),
+                                rs.getInt("DrivingTime"));
+                    }
+
+                    if (!hasResults) {
+                        System.out.println("No trip stop info found.");
+                    }
+
+                    return 0;
+
+                } catch (SQLException e) {
+                    System.err.println("Error querying trip stop info: " + e.getMessage());
                     return 1;
                 }
             }
