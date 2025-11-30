@@ -321,6 +321,24 @@ Schedule for Driver: John Smith on 2024-01-15:
   Start: San Diego | Destination: Sacramento | StartTime: 14:30 | ArrivalTime: 18:30 | BusID: 103
 ```
 
+### Display stops for a trip
+```bash
+./pts stops <tripNumber>
+```
+
+**Example:**
+```bash
+./pts stops 1
+```
+
+**Example output:**
+```
+Stops for Trip from Los Angeles to San Francisco:
+  Stop 1: Main St & 1st Ave (Driving time: 0 min)
+  Stop 2: Campus Center (Driving time: 30 min)
+  Stop 3: Downtown Terminal (Driving time: 60 min)
+```
+
 ## Database
 
 The application uses SQLite with a database file `app.db` created in the project root directory.

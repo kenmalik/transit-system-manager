@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.util.concurrent.Callable;
 
 @Command(name = "pts", version = "1.0", description = "Pomona Transit System", subcommands = { App.AddCommand.class,
-        App.DeleteCommand.class, App.ListCommand.class, App.ScheduleCommand.class })
+        App.DeleteCommand.class, App.ListCommand.class, App.ScheduleCommand.class, App.StopsCommand.class })
 public class App implements Callable<Integer> {
 
     public static void main(String[] args) {
@@ -24,7 +24,7 @@ public class App implements Callable<Integer> {
     public Integer call() {
         System.out.println("Pomona Transit System");
         System.out.println("Usage: pts <command> <entity> [options]");
-        System.out.println("Commands: add, delete, list, schedule");
+        System.out.println("Commands: add, delete, list, schedule, stops");
         System.out.println("Entities: bus, driver, stop, trip, tripoffering, tripstopinfo, actualtripstopinfo");
         return 0;
     }
@@ -967,6 +967,59 @@ public class App implements Callable<Integer> {
                     System.err.println("Error querying driver schedule: " + e.getMessage());
                     return 1;
                 }
+            }
+        }
+    }
+
+    @Command(name = "stops", description = "Display stops for a trip")
+    static class StopsCommand implements Callable<Integer> {
+        @Parameters(index = "0", description = "Trip number")
+        private int tripNumber;
+
+        @Override
+        public Integer call() {
+            String sql = """
+                    SELECT t.StartLocationName, t.DestinationName,
+                           tsi.SequenceNumber, s.StopAddress, tsi.DrivingTime
+                    FROM TripStopInfo tsi
+                    JOIN Trip t ON tsi.TripNumber = t.TripNumber
+                    JOIN Stop s ON tsi.StopNumber = s.StopNumber
+                    WHERE tsi.TripNumber = ?
+                    ORDER BY tsi.SequenceNumber
+                    """;
+
+            try (Connection conn = DatabaseManager.getConnection();
+                    PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                pstmt.setInt(1, tripNumber);
+
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    boolean hasResults = false;
+                    boolean headerPrinted = false;
+
+                    while (rs.next()) {
+                        if (!headerPrinted) {
+                            System.out.println("Stops for Trip from " + rs.getString("StartLocationName") + " to "
+                                    + rs.getString("DestinationName") + ":");
+                            headerPrinted = true;
+                        }
+                        hasResults = true;
+                        System.out.printf("  Stop %d: %s (Driving time: %d min)%n",
+                                rs.getInt("SequenceNumber"),
+                                rs.getString("StopAddress"),
+                                rs.getInt("DrivingTime"));
+                    }
+
+                    if (!hasResults) {
+                        System.out.println("No stops found for trip number " + tripNumber + ".");
+                    }
+
+                    return 0;
+                }
+
+            } catch (SQLException e) {
+                System.err.println("Error querying trip stops: " + e.getMessage());
+                return 1;
             }
         }
     }
